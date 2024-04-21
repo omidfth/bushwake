@@ -1,0 +1,13 @@
+system:
+  log_path: .
+  develop_mode: true
+
+rabbit:
+  server_name: amqp://guest:guest@rabbitmq/
+  exchange_name: task
+  publish_kind: topic
+
+redis:
+  host: redis
+  port: 6379
+  ttl: 0
