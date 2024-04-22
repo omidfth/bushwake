@@ -1,3 +1,5 @@
+![Bushwake Logo](./docs/logo.png "Bushwake")
+
 # Bushwake: Logger Service
 
 Bushwake is a service that facilities logging multi-services.
