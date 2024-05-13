@@ -11,11 +11,11 @@ services:
       mode: replicated
       replicas: 1
     volumes:
-      - ../../cmd/api/logs:/app/logs
-      - ../../config.yml:/app/config.yml
+      - ./cmd/api/logs:/app/logs
+      - ./config.yml:/app/config.yml
   rabbitmq:
     image: rabbitmq:3.8-management-alpine
-    container_name: 'rabbitmq'
+    container_name: 'rabbitmq-bushwake'
     ports:
       - "5673:5672"
       - "15673:15672"
