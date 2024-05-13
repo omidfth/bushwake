@@ -1,12 +1,15 @@
 package app
 
 import (
+	"os"
+	"time"
+
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
-func (a *application) InitLogger() *zap.Logger {
+func (a *application) InitInternalLogger() *zap.Logger {
 	var encoderCfg zapcore.EncoderConfig
 	if a.config.System.DevelopMode {
 		encoderCfg = zap.NewDevelopmentEncoderConfig()
@@ -16,33 +19,26 @@ func (a *application) InitLogger() *zap.Logger {
 	encoderCfg.TimeKey = "timestamp"
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	config := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.DebugLevel),
-		Development:       a.config.System.DevelopMode,
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		Sampling:          nil,
-		Encoding:          "json",
-		EncoderConfig:     encoderCfg,
-		OutputPaths: []string{
-			"stderr",
-			getPath(a.config.System.LogPath) + "/bushwake" + ".log",
-		},
-		ErrorOutputPaths: []string{
-			"stderr",
-			getPath(a.config.System.LogPath) + "/bushwake" + ".log",
-		},
-		InitialFields: map[string]interface{}{
-			"pid": os.Getpid(),
-		},
+	outputPath := a.config.System.LogPath
+
+	logFile := outputPath + a.config.System.LogName + "-%Y-%m-%d-T%H.log"
+
+	rotator, err := rotatelogs.New(
+		logFile,
+		rotatelogs.WithMaxAge(60*24*time.Hour),
+		rotatelogs.WithRotationTime(time.Hour))
+	if err != nil {
+		panic(err)
 	}
 
-	return zap.Must(config.Build())
-}
+	w := zapcore.AddSync(rotator)
+	t := zapcore.NewTee(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderCfg),
+			w,
+			zap.DebugLevel),
+		zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), os.Stdout, zap.DebugLevel),
+	)
 
-func getPath(logPath string) string {
-	if err := os.MkdirAll(logPath, 0755); err != nil {
-		return ""
-	}
-	return logPath
+	return zap.New(t)
 }

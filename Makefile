@@ -6,3 +6,6 @@ tidy:
 
 build:
 	cd ./cmd/api && go build -o bushwake
+
+up:
+	docker compose up -d

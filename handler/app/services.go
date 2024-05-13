@@ -6,5 +6,5 @@ import (
 )
 
 func (a *application) InitServices(pr *producer, logger *zap.Logger) services.LoggerService {
-	return services.NewLoggerService(pr.redis, a.config, pr.amqp, logger)
+	return services.NewLoggerService(pr.Redis, a.config, pr.Amqp, logger)
 }

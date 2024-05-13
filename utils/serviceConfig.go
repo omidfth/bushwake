@@ -8,6 +8,7 @@ type ServiceConfig struct {
 
 type system struct {
 	LogPath     string `mapstructure:"log_path"`
+	LogName     string `mapstructure:"log_name"`
 	DevelopMode bool   `mapstructure:"develop_mode"`
 }
 type rabbit struct {

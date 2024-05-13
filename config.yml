@@ -1,5 +1,6 @@
 system:
-  log_path: .
+  log_path: ./logs/
+  log_name: bushwake
   develop_mode: true
 
 rabbit:

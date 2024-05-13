@@ -16,8 +16,6 @@ amqp.Publish("bushwake",models.AmqpModel{
         Development:     false,
         OutputPath:      "",
         OutputName:      "",
-        ErrorOutputPath: "",
-        ErrorOutputName: "",
 	},
 })
 ```

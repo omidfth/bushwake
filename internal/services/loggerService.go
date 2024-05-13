@@ -2,16 +2,17 @@ package services
 
 import (
 	"encoding/json"
-	"git.snappfood.ir/backend/go/services/bushwack/internal/helper"
+	"os"
+	"sync"
+	"time"
+
 	"git.snappfood.ir/backend/go/services/bushwack/internal/producers"
 	"git.snappfood.ir/backend/go/services/bushwack/internal/repositories/models"
 	"git.snappfood.ir/backend/go/services/bushwack/internal/types/logTypes"
 	"git.snappfood.ir/backend/go/services/bushwack/utils"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
-	"sync"
-	"time"
 )
 
 type LoggerService interface {
@@ -94,35 +95,28 @@ func (s *loggerService) addService(command models.Register, token string) (*zap.
 	encoderCfg.TimeKey = "timestamp"
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	config := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.DebugLevel),
-		Development:       command.Development,
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		Sampling:          nil,
-		Encoding:          "json",
-		EncoderConfig:     encoderCfg,
-		OutputPaths: []string{
-			"stderr",
-			s.getPath(command.OutputPath) + command.OutputName,
-		},
-		ErrorOutputPaths: []string{
-			"stderr",
-			s.getPath(command.ErrorOutputPath) + command.ErrorOutputName,
-		},
-		InitialFields: map[string]interface{}{
-			"pid": os.Getpid(),
-		},
+	outputPath := s.getPath(command.OutputPath)
+
+	logFile := outputPath + command.OutputName + "-%Y-%m-%d-T%H.log"
+
+	rotator, err := rotatelogs.New(
+		logFile,
+		rotatelogs.WithMaxAge(60*24*time.Hour),
+		rotatelogs.WithRotationTime(time.Hour))
+	if err != nil {
+		panic(err)
 	}
-	if token == "" {
-		token = helper.GetToken()
-		j, _ := json.Marshal(models.AmqpModel{
-			Type: "register",
-			Body: token,
-		})
-		s.amqp.Publish(command.ServiceName, j)
-	}
-	return zap.Must(config.Build()), token
+
+	w := zapcore.AddSync(rotator)
+	t := zapcore.NewTee(
+		zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderCfg),
+			w,
+			zap.DebugLevel),
+		zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), os.Stdout, zap.DebugLevel),
+	)
+
+	return zap.New(t), token
 }
 
 func (s *loggerService) setCache(command models.Register, token string) {

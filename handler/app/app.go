@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"flag"
+	"log"
+
 	"git.snappfood.ir/backend/go/services/bushwack/handler/controllers"
 	"git.snappfood.ir/backend/go/services/bushwack/internal/constants"
 	"git.snappfood.ir/backend/go/services/bushwack/internal/services"
@@ -10,7 +12,6 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
-	"log"
 )
 
 type Application interface {
@@ -43,9 +44,10 @@ func (a *application) Setup() {
 			a.InitControllers,
 			a.InitServices,
 			a.InitProducers,
+			a.InitInternalLogger,
 		),
 		fx.Invoke(func(pr *producer, logSrv services.LoggerService, c controllers.LoggerController) {
-			a.InitAmqpRouter(pr.amqp, c)
+			go a.InitAmqpRouter(pr, c)
 			logSrv.Preload()
 		}),
 		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
